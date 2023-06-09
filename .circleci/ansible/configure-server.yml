@@ -21,7 +21,6 @@
   roles:
       - configure-master
 
----
 - name: "configuration worker." 
   hosts: worker
   become: true
