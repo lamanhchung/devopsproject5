@@ -154,7 +154,7 @@ jobs:
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
-  rotate-instance:
+  # rotate-instance:
 
   cleanup:
     docker:
@@ -211,7 +211,7 @@ workflows:
          requires: [configure-infrastructure]
       - smoke-test:
          requires: [deploy-webserver]
-      - rotate-instance:
-         requires: [smoke-test]
+      # - rotate-instance:
+      #    requires: [smoke-test]
       # - cleanup:
       #    requires: [smoke-test]
