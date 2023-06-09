@@ -31,14 +31,17 @@
     - iproute-tc
     state: present
 
-- name: enabling docker and kubelet service
+- name: enabling kubelet service
   service:
-    name: "{{ item }}"  
+    name: kubelet 
     state: started
     enabled: yes
-  loop:
-    - kubelet
-    - docker
+
+- name: enabling docker service
+  service:
+    name: docker 
+    state: started
+    enabled: yes
     
 - name: pulling all images
   shell: kubeadm config images pull
