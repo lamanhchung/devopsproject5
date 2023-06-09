@@ -50,7 +50,7 @@ jobs:
           name: Build application Docker image
           command: |
             cd webserver
-            docker build -t chunglm/devops-project5:latest
+            docker build -t chunglm/devops-project5:latest .
       - run:
           name: Push Docker image
           command: |
