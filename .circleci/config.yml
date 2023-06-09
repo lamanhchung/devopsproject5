@@ -28,7 +28,7 @@ jobs:
           name: Check lint
           command: |
             cd webserver
-            htmlhint html/index.html
+            /linter/htmlhint.sh html/index.html
   
   build-and-push-image:
     docker:
