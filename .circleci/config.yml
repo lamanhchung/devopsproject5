@@ -113,7 +113,7 @@ jobs:
       - run:
           name: Install dependency
           command: |
-            yum install -y tar gzip
+            yum install -y unzip
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
             unzip awscli.zip
             sudo ./aws/install
