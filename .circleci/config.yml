@@ -1,0 +1,217 @@
+version: 2.1
+
+orbs:
+  slack: circleci/slack@4.12.5
+
+commands:
+  destroy-environment:
+    description: Destroy cloudformation stacks given a workflow ID.
+    parameters:
+      workflow_id:
+        type: string
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            echo "Destroying environment: << parameters.workflow_id >> "
+            # Empty before delete the bucket
+            aws cloudformation delete-stack --stack-name "devops-project5-<< parameters.workflow_id >>"
+
+jobs:
+  check-lint:
+    docker:
+      - image: cozero/linter-html-hint:latest
+    steps:
+      - checkout
+      - run:
+          name: Check lint
+          command: |
+            cd webserver
+            htmlhint html/index.html
+  
+  build-and-push-image:
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build application Docker image
+          command: |
+            cd webserver
+            docker build -t chunglm/devops-project5:latest
+       run:
+          name: Push Docker image
+          command: |
+            docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+            docker push chunglm/devops-project5:latest
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Ensure EC2 instance infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/cloudformation/webserver.yml \
+              --tags project=project5 \
+              --stack-name "project5-webserver-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Add EC2 ip to ansible inventory
+          command: |
+            echo "[master]" >> .circleci/ansible/inventory.txt
+            aws --region us-east-1 \
+              ec2 describe-instances \
+              --filters \
+              "Name=tag:Name,Values=master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
+              --output text 2>&1 >> .circleci/ansible/inventory.txt
+            
+            echo "" >> .circleci/ansible/inventory.txt
+            echo "[worker]" >> .circleci/ansible/inventory.txt
+            aws --region us-east-1 \
+              ec2 describe-instances \
+              --filters \
+              "Name=tag:Name,Values=worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
+              --output text 2>&1 >> .circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            .circleci/ansible/inventory.txt
+      # Here's where you will add some code to rollback on failure      
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  configure-infrastructure:
+    docker:
+      - image: ansible/centos7-ansible
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "B7:3C:00:5D:50:29:40:F2:E5:C4:05:23:76:58:BB:A7:13:75:E1:93"
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            yum install -y tar gzip
+      - run:
+          name: Configure server
+          command: |
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt configure-server.yml
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  deploy-webserver:
+    docker:
+      - image: ansible/centos7-ansible
+    steps:
+      - checkout
+      - run:
+          name: Deploy 
+          command: |
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt deploy-webserver.yml
+      # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  smoke-test:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_IP=$(aws --region us-east-1 \
+              ec2 describe-instances \
+              --filters \
+              "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
+              --output text 2>&1)
+            echo "BACKEND_IP=${BACKEND_IP}"
+            echo "${BACKEND_IP}" > .circleci/backend_ip
+            cat backend/api_url
+      - run:
+          name: Backend smoke test.
+          command: |
+            sleep 10
+            export BACKEND_IP=$(cat .circleci/backend_ip)
+            echo "BACKEND_IP=${BACKEND_IP}"
+            if curl "${BACKEND_IP}" | grep "Hello"
+            then
+              exit 0
+            else
+              exit 1
+            fi
+      # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  rotate-instance:
+
+  cleanup:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+           name: Get stacks list
+           command: |
+            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+            --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
+            echo Stack names: "${STACKS[@]}"
+            echo "${STACKS[@]}" > ./stack_list
+      - run:
+          name: Remove old files and stacks
+          command: |
+            export STACKS=$(cat ./stack_list)
+            for stack in ${STACKS[@]}
+            do
+              if [[ ! "$stack" =~ "${CIRCLE_WORKFLOW_ID:0:7}" ]]
+              then
+                OldWorkflowID="${stack:(-7)}"
+                echo "OldWorkflowID $OldWorkflowID"
+                if [[ "$stack" == "udapeople-frontend-$OldWorkflowID" ]]
+                then
+                  aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+                  aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+                fi
+                if [[ "$stack" == "udapeople-backend-$OldWorkflowID" ]]
+                then
+                  aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+                fi
+                if [[ "$stack" == "udapeople-cloudfront-$OldWorkflowID" ]]
+                then
+                  aws cloudformation delete-stack --stack-name "udapeople-cloudfront-${OldWorkflowID}"
+                fi
+              fi
+            done
+
+workflows:
+  default:
+    jobs:
+      - check-lint
+      - build-and-push-image:
+         requires: [check-lint]
+         filters:
+          branches:
+            only: [master]
+      - deploy-infrastructure:
+         requires: [build-and-push-image]
+      - configure-infrastructure:
+         requires: [deploy-infrastructure]
+      - deploy-webserver:
+         requires: [configure-infrastructure]
+      - smoke-test:
+         requires: [deploy-webserver]
+      - rotate-instance:
+         requires: [smoke-test]
+      # - cleanup:
+      #    requires: [smoke-test]

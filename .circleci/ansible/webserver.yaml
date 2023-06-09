@@ -1,0 +1,12 @@
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: Udacity 
+spec: 
+  hostNetwork: true
+  containers: 
+    - name: devops-project5 
+  image: chunglm/devops-project5:latest
+  ports: 
+    - containerPort: 80
+  imagePullPolicy: Always
