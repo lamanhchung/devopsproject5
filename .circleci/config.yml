@@ -41,7 +41,7 @@ jobs:
           command: |
             cd webserver
             docker build -t chunglm/devops-project5:latest
-       run:
+      - run:
           name: Push Docker image
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
