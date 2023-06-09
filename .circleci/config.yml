@@ -38,7 +38,7 @@ jobs:
       - run:
           name: Check lint Dockerfile
           command: |
-            hadolint Dockerfile
+            hadolint webserver/Dockerfile
   
   build-and-push-image:
     docker:
