@@ -24,11 +24,22 @@ jobs:
       - image: cozero/linter-html-hint:latest
     steps:
       - checkout
+      -run:
+          name: Install dependence
+          command: |
+             # Install hadolint
+            wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 && \
+            chmod +x /bin/hadolint
       - run:
-          name: Check lint
+          name: Check lint html
           command: |
             cd webserver
             /linter/htmlhint.sh html/index.html
+
+      - run:
+          name: Check lint Dockerfile
+          command: |
+            hadolint Dockerfile
   
   build-and-push-image:
     docker:
