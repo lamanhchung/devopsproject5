@@ -1,4 +1,10 @@
 ---
+
+- name: "Update apt cache"
+  become: true
+  apt:
+    update_cache: yes
+
 # tasks file for k8s_master
 - name: Install required system packages
   apt:
@@ -13,27 +19,31 @@
     state: latest
     update_cache: true
 
-- name: Add Docker GPG apt Key
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+# - name: Add Docker GPG apt Key
+#   apt_key:
+#     url: https://download.docker.com/linux/ubuntu/gpg
+#     state: present
 
-- name: Add Docker Repository
-  apt_repository:
-    repo: deb https://download.docker.com/{{ ansible_system | lower }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
-    state: present
+# - name: Add Docker Repository
+#   apt_repository:
+#     repo: deb https://download.docker.com/linux/ubuntu focal stable
+#     state: present
 
-- name: Update apt and install docker-ce and docker-compose
-  apt:
-    pkg:
-      - docker-ce
-      - docker-compose
-    state: latest
-    update_cache: true
+# - name: Update apt and install docker-ce and docker-compose
+#   apt:
+#     pkg:
+#       - docker-ce
+#       - docker-compose
+#     state: latest
+#     update_cache: true
 
-- name: Install Docker Module for Python
-  pip:
-    name: docker
+# - name: Install Docker Module for Python
+#   pip:
+#     name: docker
+
+- name: Install Docker:
+  become: true
+  raw: apt-get install docker.io -y
 
 # - name: installing kubeadm
 #   apt:
@@ -104,6 +114,7 @@
     mode: "+x"
 
 - name: Install conntrack
+  become: true
   apt:
     pkg:
       - conntrack
