@@ -32,7 +32,7 @@ Resources:
       SecurityGroups:
         - Ref: InstanceSecurityGroup
       KeyName: devopsproject5
-      ImageId: ami-ami-068663a3c619dd892 
+      ImageId: ami-ami-04a0ae173da5807d3 
       Tags:
         - Key: Name
           Value: !Sub ${InstanceNamePrefix}-${ID}
