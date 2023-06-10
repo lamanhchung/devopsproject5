@@ -107,14 +107,6 @@ jobs:
       #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   configure-infrastructure:
-    parameters:
-      private-key:
-          description: |
-            SSH private key file. The default value must be empty,
-            so do not store any value to this environment variable.
-            The data must be registered in base64 format
-          type: env_var_name
-          default: NONEXISTENT_ANSIBLE_SSH_KEY
     docker:
       - image: ansible/centos7-ansible
     steps:
@@ -242,7 +234,6 @@ workflows:
       - deploy-infrastructure:
          requires: [build-and-push-image]
       - configure-infrastructure:
-         private-key: ANSIBLE_SSH_KEY
          requires: [deploy-infrastructure]
       - deploy-webserver:
          requires: [configure-infrastructure]

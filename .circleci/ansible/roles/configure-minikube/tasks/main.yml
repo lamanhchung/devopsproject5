@@ -103,6 +103,13 @@
     group: root
     mode: "+x"
 
+- name: Install conntrack
+  apt:
+    pkg:
+      - conntrack
+    state: latest
+    update_cache: true
+
 # install minikube
 - name: Download the latest minikube release
   uri:
