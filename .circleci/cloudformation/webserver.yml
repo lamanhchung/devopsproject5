@@ -13,7 +13,7 @@ Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub sg-${InstanceNamePrefix}-${ID}
+      GroupName: !Sub Secgroup-${InstanceNamePrefix}-${ID}
       GroupDescription: Allow port 22 and port 80.
       SecurityGroupIngress:
         - IpProtocol: tcp
