@@ -5,6 +5,9 @@ Parameters:
   ID:
     Description: Unique identifier.
     Type: String
+  InstanceNamePrefix:
+    Description: Instance name.
+    Type: String
 
 Resources:
   InstanceSecurityGroup:
@@ -29,19 +32,7 @@ Resources:
       SecurityGroups:
         - Ref: InstanceSecurityGroup
       KeyName: devopsproject5
-      ImageId: ami-04a0ae173da5807d3 
+      ImageId: ami-ami-068663a3c619dd892 
       Tags:
         - Key: Name
-          Value: !Sub master-node-${ID}
-  
-  EC2Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      SecurityGroups:
-        - Ref: InstanceSecurityGroup
-      KeyName: devopsproject5
-      ImageId: ami-04a0ae173da5807d3 
-      Tags:
-        - Key: Name
-          Value: !Sub worker-node-${ID}
+          Value: !Sub ${InstanceNamePrefix}-${ID}

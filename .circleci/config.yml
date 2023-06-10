@@ -16,7 +16,8 @@ commands:
           command: |
             echo "Destroying environment: << parameters.workflow_id >> "
             # Empty before delete the bucket
-            aws cloudformation delete-stack --stack-name "project5-webserver-<< parameters.workflow_id >>"
+            aws cloudformation delete-stack --stack-name "master-node-<< parameters.workflow_id >>"
+            aws cloudformation delete-stack --stack-name "worker-node-<< parameters.workflow_id >>"
 
 jobs:
   check-lint:
@@ -67,7 +68,14 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/cloudformation/webserver.yml \
               --tags project=project5 \
-              --stack-name "project5-webserver-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --stack-name "master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides InstanceNamePrefix="master-node" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+            aws cloudformation deploy \
+              --template-file .circleci/cloudformation/webserver.yml \
+              --tags project=project5 \
+              --stack-name "webserver-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides InstanceNamePrefix="master-node" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: Add EC2 ip to ansible inventory
