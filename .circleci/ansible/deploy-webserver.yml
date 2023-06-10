@@ -1,6 +1,6 @@
 - name: "configuration play." 
   hosts: worker
-  user: ubuntu
+  user: ec-user
   gather_facts: false
   vars:
     - ansible_python_interpreter: /usr/bin/python3
