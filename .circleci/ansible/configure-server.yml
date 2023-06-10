@@ -1,6 +1,7 @@
 ---
 - name: "configuration master." 
   hosts: master
+  user: ubuntu
   become: true
   become_method: sudo
   become_user: root  
@@ -23,6 +24,7 @@
 
 - name: "configuration worker." 
   hosts: worker
+  user: ubuntu
   become: true
   become_method: sudo
   become_user: root  

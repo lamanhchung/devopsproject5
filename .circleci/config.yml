@@ -110,13 +110,13 @@ jobs:
             - "D4:27:F7:8A:71:C8:9F:97:A3:77:A5:E8:36:94:D0:1B:3F:AC:E1:16"
       - attach_workspace:
           at: ~/
-      - run:
-          name: Install dependency
-          command: |
-            yum install -y awscli
-            #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-            #unzip awscli.zip
-            #sudo ./aws/install
+      # - run:
+      #     name: Install dependency
+      #     command: |
+      #       yum install -y awscli
+      #       #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+      #       #unzip awscli.zip
+      #       #sudo ./aws/install
       - run:
           name: Configure server
           command: |
