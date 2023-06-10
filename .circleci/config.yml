@@ -1,8 +1,7 @@
 version: 2.1
 
 orbs:
-  ansible: orbss/ansible-playbook@0.0.4
-  #slack: circleci/slack@4.12.5
+  slack: circleci/slack@4.12.5
 
 commands:
   destroy-environment:
@@ -132,15 +131,15 @@ jobs:
       #       #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
       #       #unzip awscli.zip
       #       #sudo ./aws/install
-      # - run:
-      #     name: Configure server
-      #     command: |
-      #       cd .circleci/ansible
-      #       ansible-playbook -i inventory.txt configure-server.yml
-      - ansible/playbook:
-          inventory: inventory.txt
-          playbook: configure-server.yml
-          private-key: <<parameters.private-key>>
+      - run:
+          name: Configure server
+          command: |
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt --private-key <<parameters.private-key>> configure-server.yml
+      # - ansible/playbook:
+      #     inventory: inventory.txt
+      #     playbook: configure-server.yml
+      #     private-key: <<parameters.private-key>>
       # - destroy-environment:
       #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
