@@ -107,13 +107,21 @@ jobs:
       #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   configure-infrastructure:
+    parameters:
+      private-key:
+          description: |
+            SSH private key file. The default value must be empty,
+            so do not store any value to this environment variable.
+            The data must be registered in base64 format
+          type: env_var_name
+          default: NONEXISTENT_ANSIBLE_SSH_KEY
     docker:
       - image: ansible/centos7-ansible
     steps:
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - "D4:27:F7:8A:71:C8:9F:97:A3:77:A5:E8:36:94:D0:1B:3F:AC:E1:16"
+            - "8A:78:4F:47:DC:91:95:AE:71:5F:54:09:1A:45:CB:25"
       - attach_workspace:
           at: ~/
       # - run:
@@ -123,11 +131,15 @@ jobs:
       #       #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
       #       #unzip awscli.zip
       #       #sudo ./aws/install
-      - run:
-          name: Configure server
-          command: |
-            cd .circleci/ansible
-            ansible-playbook -i inventory.txt configure-server.yml
+      # - run:
+      #     name: Configure server
+      #     command: |
+      #       cd .circleci/ansible
+      #       ansible-playbook -i inventory.txt configure-server.yml
+      - ansible/playbook:
+          inventory: inventory.txt
+          playbook: configure-server.yml
+          private-key: <<parameters.private-key>>
       # - destroy-environment:
       #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
@@ -230,6 +242,7 @@ workflows:
       - deploy-infrastructure:
          requires: [build-and-push-image]
       - configure-infrastructure:
+         private-key: ANSIBLE_SSH_KEY
          requires: [deploy-infrastructure]
       - deploy-webserver:
          requires: [configure-infrastructure]
