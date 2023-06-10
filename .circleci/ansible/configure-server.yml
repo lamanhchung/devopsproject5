@@ -21,7 +21,7 @@
       raw: apt -y install python3
   
   roles:
-      - configure-master
+      - configure-minikube
 
 # - name: "configuration worker." 
 #   hosts: worker
