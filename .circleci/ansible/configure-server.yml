@@ -22,21 +22,21 @@
   roles:
       - configure-master
 
-- name: "configuration worker." 
-  hosts: worker
-  user: ec2-user
-  become: true
-  become_method: sudo
-  become_user: root  
-  gather_facts: false
-  vars:
-    - ansible_python_interpreter: /usr/bin/python3
-    - ansible_host_key_checking: false
-    - ansible_stdout_callback: yaml
+# - name: "configuration worker." 
+#   hosts: worker
+#   user: ec2-user
+#   become: true
+#   become_method: sudo
+#   become_user: root  
+#   gather_facts: false
+#   vars:
+#     - ansible_python_interpreter: /usr/bin/python3
+#     - ansible_host_key_checking: false
+#     - ansible_stdout_callback: yaml
 
-  pre_tasks:
-    - name: "install python for Ansible."
-      raw: apt -y install python3
+#   pre_tasks:
+#     - name: "install python for Ansible."
+#       raw: apt -y install python3
   
-  roles:
-      - configure-worker
+#   roles:
+#       - configure-worker

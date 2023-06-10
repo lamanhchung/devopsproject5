@@ -70,11 +70,11 @@ jobs:
               --tags project=project5 \
               --stack-name "master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=master-node
-            aws cloudformation deploy \
-              --template-file .circleci/cloudformation/webserver.yml \
-              --tags project=project5 \
-              --stack-name "worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=worker-node
+            # aws cloudformation deploy \
+            #   --template-file .circleci/cloudformation/webserver.yml \
+            #   --tags project=project5 \
+            #   --stack-name "worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+            #   --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=worker-node
       - run:
           name: Add EC2 ip to ansible inventory
           command: |
@@ -86,14 +86,14 @@ jobs:
               --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
               --output text 2>&1 >> .circleci/ansible/inventory.txt
             
-            echo "" >> .circleci/ansible/inventory.txt
-            echo "[worker]" >> .circleci/ansible/inventory.txt
-            aws --region us-east-1 \
-              ec2 describe-instances \
-              --filters \
-              "Name=tag:Name,Values=worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
-              --output text 2>&1 >> .circleci/ansible/inventory.txt
+            # echo "" >> .circleci/ansible/inventory.txt
+            # echo "[worker]" >> .circleci/ansible/inventory.txt
+            # aws --region us-east-1 \
+            #   ec2 describe-instances \
+            #   --filters \
+            #   "Name=tag:Name,Values=worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+            #   --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
+            #   --output text 2>&1 >> .circleci/ansible/inventory.txt
       - run:
           name: Install tar
           command: |
@@ -135,7 +135,7 @@ jobs:
           name: Configure server
           command: |
             cd .circleci/ansible
-            ansible-playbook -i inventory.txt --private-key <<parameters.private-key>> configure-server.yml
+            ansible-playbook -i inventory.txt configure-server.yml
       # - ansible/playbook:
       #     inventory: inventory.txt
       #     playbook: configure-server.yml
