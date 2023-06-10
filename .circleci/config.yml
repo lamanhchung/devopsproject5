@@ -73,7 +73,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/cloudformation/webserver.yml \
               --tags project=project5 \
-              --stack-name "worker-node-${CIRCLE_WORKFLOW_ID:0:7} \
+              --stack-name "worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=worker-node
       - run:
           name: Add EC2 ip to ansible inventory
