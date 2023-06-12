@@ -65,8 +65,7 @@ jobs:
       - run:
           name: install eks and create EKS cluster
           command: |
-            curl "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
-            tar -xf eksctl_Linux_amd64.tar.gz -C /tmp
+            curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
             mv /tmp/eksctl /usr/local/bin
             eksctl create cluster --name=UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7}
 
