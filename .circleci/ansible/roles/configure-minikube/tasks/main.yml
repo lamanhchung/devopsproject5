@@ -41,7 +41,7 @@
 #   pip:
 #     name: docker
 
-- name: Install Docker:
+- name: Install Docker
   become: true
   raw: apt-get install docker.io -y
 
@@ -90,6 +90,21 @@
     name: docker
     state: restarted
 
+# Install crictl
+- name: Download the crictl
+  uri:
+    url: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.26.0/crictl-v1.26.0-linux-amd64.tar.gz
+    dest: /home/{{ ansible_user }}
+  register: crictl
+
+- name: Move crictl and change permissions
+  file:
+    src: "{{ crictl.path }}"
+    dest: /usr/bin/crictl
+    state: hard
+    owner: root
+    group: root
+    mode: "+x"
 
 # install kubectl
 - name: Get latest kubectl version
@@ -124,7 +139,7 @@
 # install minikube
 - name: Download the latest minikube release
   uri:
-    url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    url: https://storage.googleapis.com/minikube/releases/v1.25.0/minikube-linux-amd64
     dest: /home/{{ ansible_user }}
   register: minikube
 

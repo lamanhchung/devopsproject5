@@ -57,97 +57,118 @@ jobs:
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
             docker push chunglm/devops-project5:latest
-  deploy-infrastructure:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Ensure EC2 instance infrastructure exists
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/cloudformation/webserver.yml \
-              --tags project=project5 \
-              --stack-name "master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=master-node
-            # aws cloudformation deploy \
-            #   --template-file .circleci/cloudformation/webserver.yml \
-            #   --tags project=project5 \
-            #   --stack-name "worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-            #   --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=worker-node
-      - run:
-          name: Add EC2 ip to ansible inventory
-          command: |
-            echo "[master]" >> .circleci/ansible/inventory.txt
-            aws --region us-east-1 \
-              ec2 describe-instances \
-              --filters \
-              "Name=tag:Name,Values=master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
-              --output text 2>&1 >> .circleci/ansible/inventory.txt
-            
-            # echo "" >> .circleci/ansible/inventory.txt
-            # echo "[worker]" >> .circleci/ansible/inventory.txt
-            # aws --region us-east-1 \
-            #   ec2 describe-instances \
-            #   --filters \
-            #   "Name=tag:Name,Values=worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-            #   --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
-            #   --output text 2>&1 >> .circleci/ansible/inventory.txt
-      - run:
-          name: Install tar
-          command: |
-            yum install -y tar gzip
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            project/.circleci/ansible/inventory.txt
-      # Here's where you will add some code to rollback on failure      
-      # - destroy-environment:
-      #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-
-  configure-infrastructure:
+  deploy-eks-cluster:
     docker:
       - image: ansible/centos7-ansible
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - "d4:27:f7:8a:71:c8:9f:97:a3:77:a5:e8:36:94:d0:1b:3f:ac:e1:16"
-      - attach_workspace:
-          at: ~/
-      # - run:
-      #     name: Install dependency
-      #     command: |
-      #       yum install -y awscli
-      #       #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-      #       #unzip awscli.zip
-      #       #sudo ./aws/install
       - run:
-          name: Configure server
+          name: install eks and create EKS cluster
           command: |
-            cd .circleci/ansible
-            ansible-playbook -i inventory.txt configure-server.yml
-      # - ansible/playbook:
-      #     inventory: inventory.txt
-      #     playbook: configure-server.yml
-      #     private-key: <<parameters.private-key>>
-      # - destroy-environment:
-      #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+            curl "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+            mv /tmp/eksctl /usr/local/bin
+            eksctl create cluster --name=UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7}
+
+  # deploy-infrastructure:
+  #   docker:
+  #     - image: amazon/aws-cli
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Ensure EC2 instance infrastructure exists
+  #         command: |
+  #           aws cloudformation deploy \
+  #             --template-file .circleci/cloudformation/webserver.yml \
+  #             --tags project=project5 \
+  #             --stack-name "master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+  #             --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=master-node
+  #     - run:
+  #         name: Add EC2 ip to ansible inventory
+  #         command: |
+  #           echo "[master]" >> .circleci/ansible/inventory.txt
+  #           aws --region us-east-1 \
+  #             ec2 describe-instances \
+  #             --filters \
+  #             "Name=tag:Name,Values=master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+  #             --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
+  #             --output text 2>&1 >> .circleci/ansible/inventory.txt
+            
+  #           # echo "" >> .circleci/ansible/inventory.txt
+  #           # echo "[worker]" >> .circleci/ansible/inventory.txt
+  #           # aws --region us-east-1 \
+  #           #   ec2 describe-instances \
+  #           #   --filters \
+  #           #   "Name=tag:Name,Values=worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
+  #           #   --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
+  #           #   --output text 2>&1 >> .circleci/ansible/inventory.txt
+  #     - run:
+  #         name: Install tar
+  #         command: |
+  #           yum install -y tar gzip
+  #     - persist_to_workspace:
+  #         root: ~/
+  #         paths:
+  #           project/.circleci/ansible/inventory.txt
+  #     # Here's where you will add some code to rollback on failure      
+  #     # - destroy-environment:
+  #     #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  # configure-infrastructure:
+  #   docker:
+  #     - image: ansible/centos7-ansible
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - "d4:27:f7:8a:71:c8:9f:97:a3:77:a5:e8:36:94:d0:1b:3f:ac:e1:16"
+  #     - attach_workspace:
+  #         at: ~/
+  #     # - run:
+  #     #     name: Install dependency
+  #     #     command: |
+  #     #       yum install -y awscli
+  #     #       #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+  #     #       #unzip awscli.zip
+  #     #       #sudo ./aws/install
+  #     - run:
+  #         name: Configure server
+  #         command: |
+  #           cd .circleci/ansible
+  #           ansible-playbook -i inventory.txt configure-server.yml
+  #     # - ansible/playbook:
+  #     #     inventory: inventory.txt
+  #     #     playbook: configure-server.yml
+  #     #     private-key: <<parameters.private-key>>
+  #     # - destroy-environment:
+  #     #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   deploy-webserver:
-    docker:
-      - image: ansible/centos7-ansible
+    docker: 
+      - image: circleci/python:2.7.13
     steps:
       - checkout
+      - setup_remote_docker
       - run:
-          name: Deploy 
+          name: install kubectl and deploy webserver
           command: |
-            cd .circleci/ansible
-            ansible-playbook -i inventory.txt deploy-webserver.yml
-      # Here's where you will add some code to rollback on failure
-      # - destroy-environment:
-      #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+            apt install -y tar gzip unzip curl
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+            unzip awscli.zip
+            ./aws/install
+
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+            kubectl version --client
+
+            aws eks update-kubeconfig --name UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7}
+            docker pull $DOCKER_USER/$IMAGE_NAME
+
+            kubectl create namespace eks-webserver
+            kubectl apply -f eks-webserver.yaml
+            kubectl apply -f eks-service.yaml
+
+            kubectl get all -n eks-webserver
+            kubectl -n eks-webserver describe service eks-webserver
 
   smoke-test:
     docker:
@@ -231,14 +252,14 @@ workflows:
          filters:
           branches:
             only: [master]
-      - deploy-infrastructure:
+      - deploy-eks-cluster:
          requires: [build-and-push-image]
-      - configure-infrastructure:
-         requires: [deploy-infrastructure]
+      # - configure-infrastructure:
+      #    requires: [deploy-eks-cluster]
       - deploy-webserver:
-         requires: [configure-infrastructure]
-      - smoke-test:
-         requires: [deploy-webserver]
+         requires: [deploy-eks-cluster]
+      # - smoke-test:
+      #    requires: [deploy-webserver]
       # - rotate-instance:
       #    requires: [smoke-test]
       # - cleanup:
