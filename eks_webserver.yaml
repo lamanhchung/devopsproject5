@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eks-webserver
+  namespace: eks-webserver
+  labels:
+    app: eks-webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eks-webserver
+  template:
+    metadata:
+      labels:
+        app: eks-webserver
+    spec:
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: kubernetes.io/arch
+      #           operator: In
+      #           values:
+      #           - amd64
+      #           - arm64
+      containers:
+      - name: webserver
+        image: chunglm/devops-project5:latest
+        ports:
+        - name: http
+          containerPort: 80
+        imagePullPolicy: IfNotPresent
+      nodeSelector:
+        kubernetes.io/os: linux

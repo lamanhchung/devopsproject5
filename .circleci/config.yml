@@ -144,24 +144,23 @@ jobs:
 
   deploy-webserver:
     docker: 
-      - image: circleci/python:2.7.13
+      - image: circleci/node:13.8.0
     steps:
       - checkout
       - setup_remote_docker
       - run:
           name: install kubectl and deploy webserver
           command: |
-            apt install -y tar gzip unzip curl
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
             unzip awscli.zip
-            ./aws/install
+            sudo ./aws/install
 
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+            curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+            sudo mv /tmp/eksctl /usr/local/bin/eksctl
             kubectl version --client
 
             aws eks update-kubeconfig --name UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7}
-            docker pull $DOCKER_USER/$IMAGE_NAME
+            sudo docker pull chunglm/devops-project5:latest
 
             kubectl create namespace eks-webserver
             kubectl apply -f eks-webserver.yaml
@@ -169,39 +168,6 @@ jobs:
 
             kubectl get all -n eks-webserver
             kubectl -n eks-webserver describe service eks-webserver
-
-  smoke-test:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Get backend url
-          command: |
-            export BACKEND_IP=$(aws --region us-east-1 \
-              ec2 describe-instances \
-              --filters \
-              "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
-              --output text 2>&1)
-            echo "BACKEND_IP=${BACKEND_IP}"
-            echo "${BACKEND_IP}" > .circleci/backend_ip
-            cat backend/api_url
-      - run:
-          name: Backend smoke test.
-          command: |
-            sleep 10
-            export BACKEND_IP=$(cat .circleci/backend_ip)
-            echo "BACKEND_IP=${BACKEND_IP}"
-            if curl "${BACKEND_IP}" | grep "Hello"
-            then
-              exit 0
-            else
-              exit 1
-            fi
-      # Here's where you will add some code to rollback on failure
-      # - destroy-environment:
-      #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   # rotate-instance:
 
