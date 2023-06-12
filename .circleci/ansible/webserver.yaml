@@ -6,7 +6,7 @@ spec:
   hostNetwork: true
   containers: 
     - name: devops-project5 
-  image: chunglm/devops-project5:blue
+  image: chunglm/devops-project5:green
   ports: 
     - containerPort: 80
   imagePullPolicy: Always
