@@ -122,7 +122,7 @@ jobs:
               kubectl -n eks-webserver describe service eks-webserver
             else
               echo "Pod exist, update image"
-              kubectl set image deployment/eks-webserver ${DOCKER_IMAGE} --record
+              kubectl set image -n eks-webserver deployment/eks-webserver ${DOCKER_IMAGE} --record
             fi
 
 workflows:
