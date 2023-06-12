@@ -59,7 +59,7 @@ jobs:
             docker push chunglm/devops-project5:latest
   deploy-eks-cluster:
     docker:
-      - image: ansible/centos7-ansible
+      - image: python:3.7-alpine3.17
     steps:
       - checkout
       - run:
