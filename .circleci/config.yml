@@ -114,12 +114,14 @@ jobs:
             sudo docker pull ${DOCKER_IMAGE}
 
             if [[ "$OLD_POD" == "" ]]; then
+              echo "No pod exist, create new"
               kubectl apply -f eks_webserver.yaml
               kubectl apply -f eks_service.yaml
 
               kubectl get all -n eks-webserver
               kubectl -n eks-webserver describe service eks-webserver
             else
+              echo "Pod exist, update image"
               kubectl set image deployment/eks-webserver ${DOCKER_IMAGE} --record
             fi
 
