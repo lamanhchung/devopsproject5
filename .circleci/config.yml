@@ -102,6 +102,7 @@ jobs:
 
             NAMESPACES=$(kubectl get namespace)
             if echo $NAMESPACES | grep "eks-webserver"; then
+              echo "Namespace eks-webserver existed"
             else
               kubectl create namespace eks-webserver
             fi
