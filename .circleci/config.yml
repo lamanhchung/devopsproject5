@@ -110,8 +110,13 @@ jobs:
 
             sudo docker pull ${DOCKER_IMAGE}
 
-            if [[ "$OLD_POD" == "No resources found in eks-webserver namespace." ]]; then
+            NAMESPACES=$(kubectl get namespace 2>&1)
+            if echo $NAMESPACES | grep "eks-webserver"; then
+            else
               kubectl create namespace eks-webserver
+            fi
+
+            if [[ "$OLD_POD" == "No resources found in eks-webserver namespace." ]]; then
               kubectl apply -f eks_webserver.yaml
               kubectl apply -f eks_service.yaml
 
