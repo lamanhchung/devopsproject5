@@ -93,27 +93,33 @@ jobs:
             unzip awscli.zip
             sudo ./aws/install
 
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            curl -LO "https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl"
             sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
             kubectl version --client
 
-            aws eks update-kubeconfig --name UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7}
-            sudo docker pull ${DOCKER_IMAGE}
+            # Get current EKS cluster
+            OLD_CLUSTER=$(aws eks list-clusters \
+               --query 'clusters' \
+               --output text 2>&1)
+
+            aws eks update-kubeconfig --name $OLD_CLUSTER
 
             # Get current EKS cluster
             OLD_POD=$(kubectl -n eks-webserver get pods -o wide 2>&1)
             echo "Pods $OLD_POD"
 
-            #if [[ "$OLD_CLUSTER" == "" ]]; then
+            sudo docker pull ${DOCKER_IMAGE}
+
+            if [[ "$OLD_POD" == "No resources found in eks-webserver namespace." ]]; then
               kubectl create namespace eks-webserver
-              kubectl apply -f eks-webserver.yaml
-              kubectl apply -f eks-service.yaml
+              kubectl apply -f eks_webserver.yaml
+              kubectl apply -f eks_service.yaml
 
               kubectl get all -n eks-webserver
               kubectl -n eks-webserver describe service eks-webserver
-            #else
-            #  kubectl set image deployment/eks-webserver ${DOCKER_IMAGE} --record
-            #fi
+            else
+              kubectl set image deployment/eks-webserver ${DOCKER_IMAGE} --record
+            fi
 
 workflows:
   default:
