@@ -51,12 +51,12 @@ jobs:
           name: Build application Docker image
           command: |
             cd webserver
-            docker build -t chunglm/devops-project5:latest .
+            docker build -t ${DOCKER_IMAGE} .
       - run:
           name: Push Docker image
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
-            docker push chunglm/devops-project5:latest
+            docker push ${DOCKER_IMAGE}
   deploy-eks-cluster:
     docker:
       - image: circleci/node:13.8.0
@@ -65,82 +65,20 @@ jobs:
       - run:
           name: install eks and create EKS cluster
           command: |
-            curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
-            sudo mv /tmp/eksctl /usr/local/bin/eksctl
-            eksctl create cluster --name=UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7}
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+            unzip awscli.zip
+            sudo ./aws/install
 
-  # deploy-infrastructure:
-  #   docker:
-  #     - image: amazon/aws-cli
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Ensure EC2 instance infrastructure exists
-  #         command: |
-  #           aws cloudformation deploy \
-  #             --template-file .circleci/cloudformation/webserver.yml \
-  #             --tags project=project5 \
-  #             --stack-name "master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-  #             --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} InstanceNamePrefix=master-node
-  #     - run:
-  #         name: Add EC2 ip to ansible inventory
-  #         command: |
-  #           echo "[master]" >> .circleci/ansible/inventory.txt
-  #           aws --region us-east-1 \
-  #             ec2 describe-instances \
-  #             --filters \
-  #             "Name=tag:Name,Values=master-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-  #             --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
-  #             --output text 2>&1 >> .circleci/ansible/inventory.txt
-            
-  #           # echo "" >> .circleci/ansible/inventory.txt
-  #           # echo "[worker]" >> .circleci/ansible/inventory.txt
-  #           # aws --region us-east-1 \
-  #           #   ec2 describe-instances \
-  #           #   --filters \
-  #           #   "Name=tag:Name,Values=worker-node-${CIRCLE_WORKFLOW_ID:0:7}" \
-  #           #   --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
-  #           #   --output text 2>&1 >> .circleci/ansible/inventory.txt
-  #     - run:
-  #         name: Install tar
-  #         command: |
-  #           yum install -y tar gzip
-  #     - persist_to_workspace:
-  #         root: ~/
-  #         paths:
-  #           project/.circleci/ansible/inventory.txt
-  #     # Here's where you will add some code to rollback on failure      
-  #     # - destroy-environment:
-  #     #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+            # Get current EKS cluster
+            OLD_CLUSTER=$(aws eks list-clusters \
+               --query 'clusters' \
+               --output text 2>&1)
 
-  # configure-infrastructure:
-  #   docker:
-  #     - image: ansible/centos7-ansible
-  #   steps:
-  #     - checkout
-  #     - add_ssh_keys:
-  #         fingerprints:
-  #           - "d4:27:f7:8a:71:c8:9f:97:a3:77:a5:e8:36:94:d0:1b:3f:ac:e1:16"
-  #     - attach_workspace:
-  #         at: ~/
-  #     # - run:
-  #     #     name: Install dependency
-  #     #     command: |
-  #     #       yum install -y awscli
-  #     #       #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-  #     #       #unzip awscli.zip
-  #     #       #sudo ./aws/install
-  #     - run:
-  #         name: Configure server
-  #         command: |
-  #           cd .circleci/ansible
-  #           ansible-playbook -i inventory.txt configure-server.yml
-  #     # - ansible/playbook:
-  #     #     inventory: inventory.txt
-  #     #     playbook: configure-server.yml
-  #     #     private-key: <<parameters.private-key>>
-  #     # - destroy-environment:
-  #     #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+            if [[ "$OLD_CLUSTER" == "" ]]; then
+              curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+              sudo mv /tmp/eksctl /usr/local/bin/eksctl
+              eksctl create cluster --name=UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7} --zone us-east-1a,us-east-1b,us-east-1c
+            fi
 
   deploy-webserver:
     docker: 
@@ -155,59 +93,27 @@ jobs:
             unzip awscli.zip
             sudo ./aws/install
 
-            curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
-            sudo mv /tmp/eksctl /usr/local/bin/eksctl
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
             kubectl version --client
 
             aws eks update-kubeconfig --name UdacityProject5-${CIRCLE_WORKFLOW_ID:0:7}
-            sudo docker pull chunglm/devops-project5:latest
+            sudo docker pull ${DOCKER_IMAGE}
 
-            kubectl create namespace eks-webserver
-            kubectl apply -f eks-webserver.yaml
-            kubectl apply -f eks-service.yaml
+            # Get current EKS cluster
+            OLD_POD=$(kubectl -n eks-webserver get pods -o wide 2>&1)
+            echo "Pods $OLD_POD"
 
-            kubectl get all -n eks-webserver
-            kubectl -n eks-webserver describe service eks-webserver
+            #if [[ "$OLD_CLUSTER" == "" ]]; then
+              kubectl create namespace eks-webserver
+              kubectl apply -f eks-webserver.yaml
+              kubectl apply -f eks-service.yaml
 
-  # rotate-instance:
-
-  cleanup:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-           name: Get stacks list
-           command: |
-            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
-            --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
-            echo Stack names: "${STACKS[@]}"
-            echo "${STACKS[@]}" > ./stack_list
-      - run:
-          name: Remove old files and stacks
-          command: |
-            export STACKS=$(cat ./stack_list)
-            for stack in ${STACKS[@]}
-            do
-              if [[ ! "$stack" =~ "${CIRCLE_WORKFLOW_ID:0:7}" ]]
-              then
-                OldWorkflowID="${stack:(-7)}"
-                echo "OldWorkflowID $OldWorkflowID"
-                if [[ "$stack" == "udapeople-frontend-$OldWorkflowID" ]]
-                then
-                  aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
-                  aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
-                fi
-                if [[ "$stack" == "udapeople-backend-$OldWorkflowID" ]]
-                then
-                  aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
-                fi
-                if [[ "$stack" == "udapeople-cloudfront-$OldWorkflowID" ]]
-                then
-                  aws cloudformation delete-stack --stack-name "udapeople-cloudfront-${OldWorkflowID}"
-                fi
-              fi
-            done
+              kubectl get all -n eks-webserver
+              kubectl -n eks-webserver describe service eks-webserver
+            #else
+            #  kubectl set image deployment/eks-webserver ${DOCKER_IMAGE} --record
+            #fi
 
 workflows:
   default:
@@ -220,13 +126,5 @@ workflows:
             only: [master]
       - deploy-eks-cluster:
          requires: [build-and-push-image]
-      # - configure-infrastructure:
-      #    requires: [deploy-eks-cluster]
       - deploy-webserver:
          requires: [deploy-eks-cluster]
-      # - smoke-test:
-      #    requires: [deploy-webserver]
-      # - rotate-instance:
-      #    requires: [smoke-test]
-      # - cleanup:
-      #    requires: [smoke-test]

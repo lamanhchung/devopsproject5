@@ -15,19 +15,9 @@ spec:
       labels:
         app: eks-webserver
     spec:
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: kubernetes.io/arch
-      #           operator: In
-      #           values:
-      #           - amd64
-      #           - arm64
       containers:
       - name: webserver
-        image: chunglm/devops-project5:latest
+        image: chunglm/devops-project5:blue
         ports:
         - name: http
           containerPort: 80
