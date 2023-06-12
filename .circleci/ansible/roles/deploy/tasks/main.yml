@@ -1,3 +1,0 @@
----
-- name: Start webserver 
-  raw: kubectl apply -f webserver.yaml
