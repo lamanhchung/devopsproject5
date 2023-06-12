@@ -70,9 +70,7 @@ jobs:
             sudo ./aws/install
 
             # Get current EKS cluster
-            OLD_CLUSTER=$(aws eks list-clusters \
-               --query 'clusters' \
-               --output text 2>&1)
+            OLD_CLUSTER=$(aws eks list-clusters --query 'clusters' --output text)
 
             if [[ "$OLD_CLUSTER" == "" ]]; then
               curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
@@ -98,25 +96,23 @@ jobs:
             kubectl version --client
 
             # Get current EKS cluster
-            OLD_CLUSTER=$(aws eks list-clusters \
-               --query 'clusters' \
-               --output text 2>&1)
+            OLD_CLUSTER=$(aws eks list-clusters --query 'clusters' --output text)
 
             aws eks update-kubeconfig --name $OLD_CLUSTER
 
-            # Get current EKS cluster
-            OLD_POD=$(kubectl -n eks-webserver get pods -o wide 2>&1)
-            echo "Pods $OLD_POD"
-
-            sudo docker pull ${DOCKER_IMAGE}
-
-            NAMESPACES=$(kubectl get namespace 2>&1)
+            NAMESPACES=$(kubectl get namespace)
             if echo $NAMESPACES | grep "eks-webserver"; then
             else
               kubectl create namespace eks-webserver
             fi
 
-            if [[ "$OLD_POD" == "No resources found in eks-webserver namespace." ]]; then
+            # Get current EKS cluster
+            OLD_POD=$(kubectl -n eks-webserver get pods -o wide)
+            echo "Pods $OLD_POD"
+
+            sudo docker pull ${DOCKER_IMAGE}
+
+            if [[ "$OLD_POD" == "" ]]; then
               kubectl apply -f eks_webserver.yaml
               kubectl apply -f eks_service.yaml
 
